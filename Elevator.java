@@ -1,15 +1,52 @@
 package ElevatorSystem;
 
-public class Elevator {
+import java.util.LinkedList;
+import java.util.Queue;
+
+public class Elevator implements Runnable{
 
 	 int totalFloors;
 	 int currentFloor;
 	 ElevatorStatus status;
+	 Queue<Request>  requestQueue;
+	 Object lock;
 	 
 	 public Elevator(int floor) {
 		 this.totalFloors = floor;
 		 this.currentFloor = 0;
 		 this.status = ElevatorStatus.IDLE;
+		 this.requestQueue = new LinkedList<>();
+		 this.lock = new Object();
+		 
+		 Thread newThread = new Thread(this);
+		 newThread.start();
+		 
+	 }
+	 
+	 public void addRequest(Request req) {
+		 synchronized(lock){
+			 System.out.println("New floor request added.");
+			 requestQueue.add(req);
+			 lock.notify();
+		 }
+	 }
+	 
+	 @Override
+	 public void run() {
+		 while(true) {
+			  synchronized(lock) {
+				  while(requestQueue.isEmpty()) {
+					  try{
+						  lock.wait();
+					  }catch(InterruptedException e){
+	                        Thread.currentThread().interrupt();
+	                        return;
+	                    }
+				  }
+			  }
+			 if(!requestQueue.isEmpty())
+			 handleRequest(requestQueue.poll()); 
+		 }
 	 }
 	 
 	 public void handleRequest(Request req){
